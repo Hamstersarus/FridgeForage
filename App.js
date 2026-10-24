@@ -4,12 +4,17 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { findRecipes, getRecipe } from './recipes';
+import { convert } from './convert';
 
 export default function App() {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [recipes, setRecipes]  = useState([]);
   const [selected, setSelected] = useState(null);
+  const [showConverter, setShowConverter] = useState(false);
+  const [amountText, setAmountText] = useState('1');
+  const [fromUnit, setFromUnit] = useState('cup');
+  const [toUnit, setToUnit] = useState('tbsp');
 
   useEffect(() => {
     const load = async () => {
@@ -93,7 +98,31 @@ export default function App() {
     }
   };
 
-  
+  const UNITS = ['tsp', 'tbsp', 'fl oz', 'cup', 'ml', 'l', 'oz', 'lb', 'g', 'kg'];
+
+  const converted = convert(parseFloat(amountText), fromUnit, toUnit);
+  const resultText =
+    isNaN(parseFloat(amountText)) ? '' :
+    converted === null ? "Can't convert those units" :
+    `${Math.round(converted * 100) / 100} ${toUnit}`;
+
+  const UnitPicker = ({ value, onChange }) => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      {UNITS.map((u) => (
+        <Text
+          key={u}
+          onPress={() => onChange(u)}
+          style={{
+            padding: 8,
+            borderWidth: 1,
+            borderRadius: 6,
+            backgroundColor: u === value ? '#cde' : '#fff',
+          }}>
+          {u}
+          </Text>
+      ))}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -123,6 +152,7 @@ export default function App() {
           )}
         />
         <Button title="Find recipes" onPress={searchRecipes} />
+        <Button title="Converter" onPress={() => setShowConverter(true)} />
         <FlatList
           style={{ flexGrow: 0 }}
           data={recipes}
@@ -133,6 +163,23 @@ export default function App() {
             </Text>
           )}
         />
+        <Modal visible={showConverter} animationType="slide">
+          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 12 }}>
+            <Text style={{ fontSize: 22, fontWeight: 'bold' }}>Measurement converter</Text>
+            <TextInput
+              value={amountText}
+              onChangeText={setAmountText}
+              keyboardType="numeric"
+              style={{ borderWidth: 1, padding: 10, borderRadius: 6}}
+            />
+            <Text>From</Text>
+            <UnitPicker value={fromUnit} onChange={setFromUnit} />
+            <Text>To</Text>
+            <UnitPicker value={toUnit} onChange={setToUnit} />
+            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{resultText}</Text>
+            <Button title="Close" onPress={() => setShowConverter(false)} />
+          </ScrollView>
+        </Modal>
         <Modal visible={selected !== null} animationType="slide">
           <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 8}}>
             {selected && (
