@@ -1,14 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList, TextInput, Button, Image } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TextInput, Button, Image, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {findRecipes } from './recipes';
+import { findRecipes, getRecipe } from './recipes';
 
 export default function App() {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [recipes, setRecipes]  = useState([]);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -83,6 +84,15 @@ export default function App() {
     }
   };
 
+  const openRecipe = async (id) => {
+    try {
+      const recipe = await getRecipe(id);
+      setSelected(recipe);
+    } catch(e) {
+      alert('Could not load that recipe.');
+    }
+  };
+
   
 
   return (
@@ -118,9 +128,34 @@ export default function App() {
           data={recipes}
           keyExtractor={(r) => r.idMeal}
           renderItem={({ item }) => (
-            <Text>{item.strMeal} (uses {item.matches} of your ingredients)</Text>
+            <Text onPress={() => openRecipe(item.idMeal)}>
+              {item.strMeal} (uses {item.matches} of your ingredients)
+            </Text>
           )}
         />
+        <Modal visible={selected !== null} animationType="slide">
+          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 8}}>
+            {selected && (
+              <>
+              <Text style = {{ fontSize: 22, fontWeight: 'bold' }}>{selected.title}</Text>
+              <Text style = {{ fontWeight: 'bold' }}>Ingredients</Text>
+              {selected.ingredients.map((ing, i) => {
+                const have = items.some((it) =>
+                  ing.name.toLowerCase().includes(it.name.toLowerCase())
+              );
+              return (
+                <Text key={i}>
+                  {have ? '✓' : '✗'} {ing.measure} {ing.name}
+                </Text>
+              );
+              })}
+              <Text style={{ fontWeight: 'bold', marginTop: 12 }}>Instructions</Text>
+              <Text>{selected.instructions}</Text>
+            </>
+            )}
+            <Button title="Close" onPress={() => setSelected(null)} />
+          </ScrollView>
+        </Modal>
         <StatusBar style="auto" />
       </View>
     );

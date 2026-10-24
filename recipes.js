@@ -21,3 +21,22 @@ export async function findRecipes(ingredientNames) {
     .sort((a, b) => b.matches - a.matches)
     .map((entry) => ({ ...entry.meal, matches: entry.matches }));
 }
+
+export async function getRecipe(id) {
+  const response = await fetch(`${BASE}/lookup.php?i=${id}`);
+  const data = await response.json();
+  if(!data.meals) {
+    return null;
+  }
+
+  const meal = data.meals[0];
+  const ingredients = [];
+  for (let i = 1; i<=20; i++) {
+    const name = meal[`strIngredient${i}`];
+    const measure = meal[`strMeasure${i}`];
+    if (name && name.trim() !== '') {
+      ingredients.push({ name: name.trim(), measure:(measure || '').trim() });
+    }
+  }
+  return { title: meal.strMeal, instructions: meal.strInstructions, ingredients };
+}
