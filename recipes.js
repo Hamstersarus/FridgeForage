@@ -1,6 +1,12 @@
 const BASE = 'https://www.themealdb.com/api/json/v1/1';
 
-export async function findRecipes(ingredientNames) {
+async function idsFor(param, value) {
+  const response = await fetch(`${BASE}/filter.php?${param}=${encodeURIComponent(value)}`);
+  const data = await response.json();
+  return new Set((data.meals || []).map((m) => m.idMeal));
+}
+
+export async function findRecipes(ingredientNames, filters = {}) {
   const counts = {};   // idMeal -> { meal, matches }
 
   for (const name of ingredientNames) {
@@ -17,9 +23,23 @@ export async function findRecipes(ingredientNames) {
     }
   }
 
-  return Object.values(counts)
+  let results = Object.values(counts)
     .sort((a, b) => b.matches - a.matches)
     .map((entry) => ({ ...entry.meal, matches: entry.matches }));
+
+  if (filters.category) {
+    const ids = await idsFor('c', filters.category);
+    results = results.filter((r) => ids.has(r.idMeal));
+  }
+  if (filters.area) {
+    const ids = await idsFor('a', filters.area);
+    results = results.filter((r) => ids.has(r.idMeal));
+  }
+  if (filters.keyword && filters.keyword.trim() !== '') {
+    const word = filters.keyword.trim().toLowerCase();
+    results = results.filter((r) => r.strMeal.toLowerCase().includes(word));
+  }
+  return results;
 }
 
 export async function getRecipe(id) {

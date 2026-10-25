@@ -1,10 +1,26 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList, TextInput, Button, Image, Modal, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TextInput, Button, Image, Modal, ScrollView, Pressable} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { findRecipes, getRecipe } from './recipes';
 import { convert } from './convert';
+
+const COLORS = { primary: '#2E7D32', bg: '#FFF8F0', text: '#222', card: '#fff' };
+
+const Btn = ({ title, onPress, color = COLORS.primary }) => (
+  <Pressable
+    onPress={onPress}
+    style={({ pressed }) => ({
+      backgroundColor: color,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      opacity: pressed ? 0.7 : 1,
+    })}>
+      <Text style={{ color: '#fff', fontWeight: '600' }}>{title}</Text>
+    </Pressable>
+)
 
 export default function App() {
   const [items, setItems] = useState([]);
@@ -15,6 +31,10 @@ export default function App() {
   const [amountText, setAmountText] = useState('1');
   const [fromUnit, setFromUnit] = useState('cup');
   const [toUnit, setToUnit] = useState('tbsp');
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [category, setCategory] = useState(null);
+  const [area, setArea] = useState(null);
+  const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -82,8 +102,11 @@ export default function App() {
       return;
     }
     try {
-      const results = await findRecipes(items.map((item) => item.name));
+      const results = await findRecipes(items.map((item) => item.name), { category, area, keyword });
       setRecipes(results);
+      if (results.length === 0) {
+        alert('No matches. Try fewer filters.');
+      }
     } catch (e) {
       alert('Could not load recipes. Check your internet connection.');
     }
@@ -112,48 +135,64 @@ export default function App() {
         <Text
           key={u}
           onPress={() => onChange(u)}
-          style={{
-            padding: 8,
-            borderWidth: 1,
-            borderRadius: 6,
-            backgroundColor: u === value ? '#cde' : '#fff',
-          }}>
+          style={{ padding: 8, borderWidth: 1, borderRadius: 6,
+            backgroundColor: u === value ? '#cde' : '#fff' }}>
           {u}
-          </Text>
+        </Text>
       ))}
     </View>
   );
 
+  const Choices = ({ options, value, onChange }) => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      {options.map((o) => (
+        <Text
+          key={o}
+          onPress={() => onChange(value === o ? null : o)}
+          style={{ padding: 8, borderWidth: 1, borderRadius: 6,
+            backgroundColor: o === value ? '#cde' : '#fff' }}>
+          {o}
+            </Text>
+      ))}
+    </View>
+  );
+
+  const CATEGORIES = ['Breakfast', 'Starter', 'Side', 'Dessert', 'Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Vegan'];
+  const AREAS = ['Italian', 'Mexican', 'Indian', 'Chinese', 'Japanese', 'American', 'French'];
+
+  const sortedItems = [...items].sort((a, b) => Number(b.perishable) - Number(a.perishable));
+
   return (
     <View style={styles.container}>
-      <TextInput
-        value={text}
-        onChangeText={setText}
-        placeholder="Add an ingredient"
-        style={{ borderWidth: 1, borderColor: '#999', padding: 10, width: 250, borderRadius: 6}}
+      <Text style={styles.title}>FridgeForage</Text>
+      <Text style={styles.subtitle}>Cook what you already have</Text>
+
+      <View style={styles.row}>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="Add an ingredient"
+          style={styles.input}
         />
-        <Button title="Take photo" onPress={takePhoto} />
-        {photo && <Image source={{ uri: photo}} style={{ width: 80, height: 80 }} />}
-        <Button title="Add" onPress={addItem} />
-        <FlatList
-          style={{ flexGrow: 0}}
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap:8}}>
-              {item.photo && (
-                <Image source={{ uri: item.photo }} style={{ width: 50, height: 50 }} />
-              )}
-              <Text onPress={() => togglePerishable(item.id)}>
-                {item.name} {item.perishable ? '(perishable)' : ''}
-              </Text>
-              <Button title="Delete" onPress={() => deleteItem(item.id)} />
-            </View>
-          )}
-        />
-        <Button title="Find recipes" onPress={searchRecipes} />
-        <Button title="Converter" onPress={() => setShowConverter(true)} />
-        <FlatList
+        <Btn title="Add" onPress={addItem} />
+      </View>
+
+      <View style={styles.row}>
+        <Btn title="Take photo" onPress={takePhoto} color={COLORS.accent} />
+        {photo && <Image source={{ uri: photo}} style={styles.thumb} />}
+      </View>
+
+      <FlatList
+        style={{ flexGrow: 0, maxHeight: 220 }}
+        data={sortedItems}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            {item.photo && <Image source={{ uri: item.photo }} style={styles.thumb} />}
+            <Text style={styles.cardText} onPress={() => togglePerishable(item.id)}>
+              {item.name}
+            </Text>
+        )}
           style={{ flexGrow: 0 }}
           data={recipes}
           keyExtractor={(r) => r.idMeal}
@@ -163,6 +202,21 @@ export default function App() {
             </Text>
           )}
         />
+
+        <Modal visible={quizOpen} animationType="slide">
+          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 12 }}>
+            <Text style={{ fontSize: 22, fontWeight: 'bold' }}>What are you in the mood for?</Text>
+            <Text>Kind of meal</Text>
+            <Choices options={CATEGORIES} value={category} onChange={setCategory} />
+            <Text>Cuisine</Text>
+            <Choices options={AREAS} value={area} onChange={setArea} />
+            <Text>Word in the name (optional)</Text>
+            <TextInput value={keyword} onChangeText={setKeyword} placeholder="soup, salad, pie..."
+              style={{ borderWidth: 1, padding: 10, borderRadius: 6 }} />
+            <Button title="Show recipes"onPress={() => { setQuizOpen(false); searchRecipes(); }} />
+            <Button title="Cancel" onPress={() => setQuizOpen(false)} />
+          </ScrollView>
+        </Modal>
         <Modal visible={showConverter} animationType="slide">
           <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 12 }}>
             <Text style={{ fontSize: 22, fontWeight: 'bold' }}>Measurement converter</Text>
