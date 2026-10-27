@@ -239,9 +239,9 @@ export default function App() {
             <Text style={styles.label}>From</Text>
             <UnitPicker value={fromUnit} onChange={setFromUnit} />
             <Text style={styles.label}>To</Text>
-            <UnitPicker value={fromUnit} onChange={setFromUnit} />
+            <UnitPicker value={toUnit} onChange={setToUnit} />
             <View style={[styles.card, { justifyContent: 'center', padding: 16}]}>
-                <Text style={{ frontSize: 24, fontWeight: 'bold', color: COLORS.primary }}>(resultText)</Text>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: COLORS.primary }}>{resultText}</Text>
             </View>
             <Btn title="Close" color="#999" onPress={() => setShowConverter(false)} />
           </ScrollView>
@@ -293,10 +293,10 @@ const styles = StyleSheet.create({
   thumb: { width: 50, height: 50, borderRadius: 8 },
   recipeImg: { width: 64, height: 64, borderRadius: 8 },
   tag: { backgroundColor: COLORS.accent, color: '#fff', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, fontSize: 12, overflow: 'hidden' },
-  modal: { padding: 20, paddingTOp: 60, gap: 12, backgroundColor: COLORS.bg, flexGrow: 1},
-  modalTitle: { fontSize: 26, fongWeight: 'bold', color:COLORS.primary },
+  modal: { padding: 20, paddingTop: 60, gap: 12, backgroundColor: COLORS.bg, flexGrow: 1},
+  modalTitle: { fontSize: 26, fontWeight: 'bold', color:COLORS.primary },
   label: { fontWeight: '600', color: COLORS.text, marginTop: 4 },
   field: {backgroundColor: COLORS.card, borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8 },
-  chip: { paddinertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 16, backgroundColor: COLORS.card, color: COLORS.text, overflow: 'hidden' },
+  chip: { paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 16, backgroundColor: COLORS.card, color: COLORS.text, overflow: 'hidden' },
   chipOn: { backgroundColor: '#DCEFDC', borderColor: COLORS.primary, color: COLORS.primary, fontWeight: '600' },
 });
