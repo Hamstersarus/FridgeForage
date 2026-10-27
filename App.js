@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { findRecipes, getRecipe } from './recipes';
 import { convert } from './convert';
 
-const COLORS = { primary: '#2E7D32', bg: '#FFF8F0', text: '#222', card: '#fff' };
+const COLORS = { primary: '#2E7D32', bg: '#FFF8F0', accent: '#E65100', text: '#222', card: '#fff' };
 
 const Btn = ({ title, onPress, color = COLORS.primary }) => (
   <Pressable
@@ -135,8 +135,7 @@ export default function App() {
         <Text
           key={u}
           onPress={() => onChange(u)}
-          style={{ padding: 8, borderWidth: 1, borderRadius: 6,
-            backgroundColor: u === value ? '#cde' : '#fff' }}>
+         style={[styles.chip, u === value && styles.chipOn]}>
           {u}
         </Text>
       ))}
@@ -149,8 +148,7 @@ export default function App() {
         <Text
           key={o}
           onPress={() => onChange(value === o ? null : o)}
-          style={{ padding: 8, borderWidth: 1, borderRadius: 6,
-            backgroundColor: o === value ? '#cde' : '#fff' }}>
+          style={[styles.chip, o === value && styles.chipOn]}>
           {o}
             </Text>
       ))}
@@ -192,69 +190,91 @@ export default function App() {
             <Text style={styles.cardText} onPress={() => togglePerishable(item.id)}>
               {item.name}
             </Text>
+            {item.perishable && <Text style={styles.tag}>use soon</Text>}
+            <Btn title="Delete" color="#999" onPress={() => deleteItem(item.id)} />
+          </View>
         )}
-          style={{ flexGrow: 0 }}
-          data={recipes}
-          keyExtractor={(r) => r.idMeal}
-          renderItem={({ item }) => (
-            <Text onPress={() => openRecipe(item.idMeal)}>
-              {item.strMeal} (uses {item.matches} of your ingredients)
+      />
+
+      <View style={styles.row}>
+        <Btn title="Find recipes" onPress={() => setQuizOpen(true)} />
+        <Btn title="Converter" onPress={() => setShowConverter(true)} color={COLORS.accent} />
+      </View>
+
+      <FlatList
+        style={{ flex: 1 }}
+        data={recipes}
+        keyExtractor={(r) => r.idMeal}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Image source={{ uri: item.strMealThumb }} style={styles.recipeImg} />
+            <Text style={styles.cardText} onPress={() => openRecipe(item.idMeal)}>
+              {item.strMeal}{'\n'}
+              <Text style={{ color: '#666' }}>uses {item.matches} of your ingredients</Text>
             </Text>
-          )}
-        />
+          </View>
+        )}
+      />
 
         <Modal visible={quizOpen} animationType="slide">
-          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 12 }}>
-            <Text style={{ fontSize: 22, fontWeight: 'bold' }}>What are you in the mood for?</Text>
-            <Text>Kind of meal</Text>
+          <ScrollView contentContainerStyle={styles.modal}>
+            <Text style={styles.modalTitle}>What are you in the mood for?</Text>
+            <Text style={styles.label}>Kind of meal</Text>
             <Choices options={CATEGORIES} value={category} onChange={setCategory} />
-            <Text>Cuisine</Text>
+            <Text style={styles.label}>Cuisine</Text>
             <Choices options={AREAS} value={area} onChange={setArea} />
-            <Text>Word in the name (optional)</Text>
-            <TextInput value={keyword} onChangeText={setKeyword} placeholder="soup, salad, pie..."
-              style={{ borderWidth: 1, padding: 10, borderRadius: 6 }} />
-            <Button title="Show recipes"onPress={() => { setQuizOpen(false); searchRecipes(); }} />
-            <Button title="Cancel" onPress={() => setQuizOpen(false)} />
+            <Text style={styles.label}>Word in the name (optional)</Text>
+            <TextInput value={keyword} onChangeText={setKeyword}
+              placeholder="soup, salad, pie..." style={styles.field} />
+            <Btn title="Show recipes" onPress={() => { setQuizOpen(false); searchRecipes(); }} />
+            <Btn title="Cancel" color='#999' onPress={() => setQuizOpen(false)} />
           </ScrollView>
         </Modal>
+
         <Modal visible={showConverter} animationType="slide">
-          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 12 }}>
-            <Text style={{ fontSize: 22, fontWeight: 'bold' }}>Measurement converter</Text>
-            <TextInput
-              value={amountText}
-              onChangeText={setAmountText}
-              keyboardType="numeric"
-              style={{ borderWidth: 1, padding: 10, borderRadius: 6}}
-            />
-            <Text>From</Text>
+          <ScrollView contentContainerStyle={styles.modal}>
+            <Text style={styles.modalTitle}>Measurement converter</Text>
+            <TextInput value={amountText} onChangeText={setAmountText}
+              keyboardType="numeric" style={styles.field} />
+            <Text style={styles.label}>From</Text>
             <UnitPicker value={fromUnit} onChange={setFromUnit} />
-            <Text>To</Text>
-            <UnitPicker value={toUnit} onChange={setToUnit} />
-            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{resultText}</Text>
-            <Button title="Close" onPress={() => setShowConverter(false)} />
+            <Text style={styles.label}>To</Text>
+            <UnitPicker value={fromUnit} onChange={setFromUnit} />
+            <View style={[styles.card, { justifyContent: 'center', padding: 16}]}>
+                <Text style={{ frontSize: 24, fontWeight: 'bold', color: COLORS.primary }}>(resultText)</Text>
+            </View>
+            <Btn title="Close" color="#999" onPress={() => setShowConverter(false)} />
           </ScrollView>
         </Modal>
+
         <Modal visible={selected !== null} animationType="slide">
-          <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 50, gap: 8}}>
+          <ScrollView contentContainerStyle={styles.modal}>
             {selected && (
               <>
-              <Text style = {{ fontSize: 22, fontWeight: 'bold' }}>{selected.title}</Text>
-              <Text style = {{ fontWeight: 'bold' }}>Ingredients</Text>
-              {selected.ingredients.map((ing, i) => {
-                const have = items.some((it) =>
-                  ing.name.toLowerCase().includes(it.name.toLowerCase())
-              );
-              return (
-                <Text key={i}>
-                  {have ? '✓' : '✗'} {ing.measure} {ing.name}
-                </Text>
-              );
-              })}
-              <Text style={{ fontWeight: 'bold', marginTop: 12 }}>Instructions</Text>
-              <Text>{selected.instructions}</Text>
-            </>
+                <Image source={{ uri: selected.image }} style={{ height: 200, borderRadius: 12 }} />
+                <Text style={styles.modalTitle}>{selected.title}</Text>
+                <Text style={styles.label}>Ingredients</Text>
+                <View style={[styles.card, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
+                  {selected.ingredients.map((ing, i) => {
+                    const have = items.some((it) =>
+                      ing.name.toLowerCase().includes(it.name.toLowerCase())
+                    );
+                    return(
+                      <Text key={i} style={{ color: COLORS.text }}>
+                        <Text style={{ color: have ? COLORS.primary : COLORS.accent, fontWeight: 'bold' }}>
+                          {have ? '✓' : '✗'}
+                        </Text>{' '}{ing.measure} {ing.name}
+                      </Text>
+                    );
+                  })}
+                </View>
+                <Text style={styles.label}>Instructions</Text>
+                <View style={styles.card}>
+                  <Text style={{ flex: 1, color: COLORS.text, lineHeight: 22}}>{selected.instructions}</Text>
+                </View>
+              </>
             )}
-            <Button title="Close" onPress={() => setSelected(null)} />
+            <Btn title="Close" color="#999" onPress={() => setSelected(null)} />
           </ScrollView>
         </Modal>
         <StatusBar style="auto" />
@@ -263,11 +283,20 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingTop: 60, paddingHorizontal: 16, gap: 12 },
+  title: { fontSize: 30, fontWeight: 'bold', color: COLORS.primary },
+  subtitle: { color: '#666', marginTop: -8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  input: { flex: 1, backgroundColor: COLORS.card, borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.card, padding: 10, borderRadius: 10, marginBottom: 8 },
+  cardText: { flex: 1, color: COLORS.text, fontSize: 16 },
+  thumb: { width: 50, height: 50, borderRadius: 8 },
+  recipeImg: { width: 64, height: 64, borderRadius: 8 },
+  tag: { backgroundColor: COLORS.accent, color: '#fff', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, fontSize: 12, overflow: 'hidden' },
+  modal: { padding: 20, paddingTOp: 60, gap: 12, backgroundColor: COLORS.bg, flexGrow: 1},
+  modalTitle: { fontSize: 26, fongWeight: 'bold', color:COLORS.primary },
+  label: { fontWeight: '600', color: COLORS.text, marginTop: 4 },
+  field: {backgroundColor: COLORS.card, borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8 },
+  chip: { paddinertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 16, backgroundColor: COLORS.card, color: COLORS.text, overflow: 'hidden' },
+  chipOn: { backgroundColor: '#DCEFDC', borderColor: COLORS.primary, color: COLORS.primary, fontWeight: '600' },
 });

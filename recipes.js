@@ -58,5 +58,5 @@ export async function getRecipe(id) {
       ingredients.push({ name: name.trim(), measure:(measure || '').trim() });
     }
   }
-  return { title: meal.strMeal, instructions: meal.strInstructions, ingredients };
+    return { title: meal.strMeal, image: meal.strMealThumb, instructions: meal.strInstructions, ingredients };
 }
